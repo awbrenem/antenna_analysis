@@ -1,0 +1,45 @@
+*STEREO ANTENNA
+*VS 0 1 AC 1 SIN(0V 10V 5kHz)
+VS 0 1 AC 1 0      *random voltage source (doesn't matter what it is as long as it's AC) 
+Rs 1 2 90000MEG
+Cs 1 2 44p
+RB 0 2 10MEG
+CB 0 2 60p
+R1 2 3 100
+R2 4 3 33MEG
+C1 3 5 100p
+R4 0 5 150MEG
+C2 0 4 100p
+R3 0 4 33MEG
+*.AC DEC 100 1Hz 1000kHz
+
+
+
+
+.control
+
+
+ac dec 100 1hz 1000khz
+* 100 bins per decade from 1 Hz to 1000 kHz
+
+echo $plots
+setplot ac1
+
+
+plot abs(phase(v(5))) xlabel "freq" ylabel "phase (deg)" 
+*plot v(5) xlabel "freq" ylabel "Vout"
+*plot db(v(5))
+
+.endc
+
+.end
+
+
+
+
+*-------------------------------------------------
+* cd #  --> interactive box to activate folder where this file exists
+* source stereo_antenna.txt
+* plot phase(out)
+* plot gain(out)
+*-------------------------------------------------
