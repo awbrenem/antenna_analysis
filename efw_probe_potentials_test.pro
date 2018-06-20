@@ -32,7 +32,7 @@ pro efw_probe_potentials_test,probe=probe,noplot=noplot,detrend_time=dettime,$
 
 ;    timespan,'2013-03-17'
 ;timespan,'2013-04-19'
-    timespan,'2014-04-22'
+    timespan,'2013-03-17'
   probe = 'a'
   ;; args = command_line_args()
   ;; probe = args[0]
@@ -51,7 +51,37 @@ spinperiod = median(dat.y)
 
 
   if ~KEYWORD_SET(dettime) then dettime = 6.*spinperiod
-  if ~KEYWORD_SET(ccstep) then ccstep = 30.  ;# of spinperiods to calculate cc over
+
+
+;-------------------------------------------------------------------------
+;Keeping this number low (e.g. 1 or 2) you can still see if the phases are in sync
+;during times when the probes are fluctuating by density fluctuations.
+;These values tend to be fairly choppy. Later on I smooth these values to reduce this
+;choppiness.
+;Can also set to a higher number (e.g. 10 or 20). The relative phases will tend to
+;go to zero when there are density fluctuations. No need to detrend these.
+;  if ~KEYWORD_SET(ccstep) then ccstep = 10.  ;# of spinperiods to calculate cc over
+
+if ~KEYWORD_SET(ccstep) then ccstep = 4.  ;# of spinperiods to calculate cc over
+ccstep_detrend_spinperiods = 20.
+;-------------------------------------------------------------------------
+
+
+
+;---------------------------------------------
+;Load L3 data to get spinfit values and flags
+;---------------------------------------------
+
+rbsp_load_efw_waveform_l3,probe=probe
+split_vec,rbspx+'efw_flags_charging_bias_eclipse',suffix=['_charging','_bias','_eclipse']
+
+options,rbspx+'efw_flags_charging_bias_eclipse_charging','ytitle',rbspx+'efw!Ccharging flag'
+options,rbspx+'efw_flags_charging_bias_eclipse_bias','ytitle',rbspx+'efw!Cbias flag'
+options,rbspx+'efw_flags_charging_bias_eclipse_eclipse','ytitle',rbspx+'efw!Ceclipse flag'
+ylim,[rbspx+'efw_flags_all',rbspx+'efw_flags_charging_bias_eclipse',$
+rbspx+'efw_flags_charging_bias_eclipse_*'],0,2
+ylim,rbspx+'efw_density',8,10000,1
+ylim,rbspx+'efw_efield_inertial_frame_mgse',-10,10
 
 
   ;--------------------------------------------------
@@ -109,16 +139,7 @@ spinperiod = median(dat.y)
   store_data,rbspx+'comb24d',data=['rbsp'+probe+'_efw_vsvy_v2','rbsp'+probe+'_efw_vsvy_v4']+'_smoothed_detrend'
   store_data,rbspx+'comb34d',data=['rbsp'+probe+'_efw_vsvy_v3','rbsp'+probe+'_efw_vsvy_v4']+'_smoothed_detrend'
 
-  ;; options,['comb12','comb34','comb13'],'colors',[0,250]
-  ;; options,['comb12d','comb34d','comb13d'],'colors',[0,250]
-  ;; tplot,['comb12','comb12d','comb34','comb34d','comb13','comb13d']
-  ;;  tplot,['rbsp'+probe+'_efw_esvy_e12','rbsp'+probe+'_efw_esvy_e34']
-  ;;  tplot,['comb12d','comb12_bp','comb34d','comb34_bp','comb13d','comb13_bp']
 
-  if ~KEYWORD_SET(noplot) then begin
-    tplot,[rbspx+'comb12',rbspx+'comb12_bp',rbspx+'comb34',rbspx+'comb34_bp',rbspx+'comb13',rbspx+'comb13_bp']
-    ;stop
-  endif
   ;density proxy
   get_data,'rbsp'+probe+'_efw_vsvy_v1',data=v1
   get_data,'rbsp'+probe+'_efw_vsvy_v2',data=v2
@@ -225,6 +246,10 @@ spinperiod = median(dat.y)
   store_data,rbspx+'phase_v2v4',data={x:phaseT,y:phase24}
   store_data,rbspx+'phase_v3v4',data={x:phaseT,y:phase34}
 
+  ;Smooth out phase values.
+  rbsp_detrend,rbspx+'phase_v?v?',10.8*ccstep_detrend_spinperiods
+
+
   store_data,'line0',data={x:phaseT,y:replicate(0.,n_elements(phaseT))}
   store_data,'line90',data={x:phaseT,y:replicate(90.,n_elements(phaseT))}
   store_data,'line180',data={x:phaseT,y:replicate(180.,n_elements(phaseT))}
@@ -237,16 +262,16 @@ spinperiod = median(dat.y)
   store_data,'line360red',data={x:phaseT,y:replicate(360.,n_elements(phaseT))}
   options,['line90red','line180red','line270red','line360red'],'colors',250
   options,['line0','line90','line180','line270','line360'],'colors',50
-  options,['line90red','line180red','line270red','line360red'],'thick',2
-  options,['line0','line90','line180','line270','line360'],'thick',2
+  options,['line90red','line180red','line270red','line360red'],'thick',4
+  options,['line0','line90','line180','line270','line360'],'thick',1
 
 
-  store_data,rbspx+'phase_v1v2c',data=['line0','line90','line180red','line270','line360',rbspx+'phase_v1v2']
-  store_data,rbspx+'phase_v1v3c',data=['line0','line90red','line180','line270red','line360',rbspx+'phase_v1v3']
-  store_data,rbspx+'phase_v1v4c',data=['line0','line90red','line180','line270red','line360',rbspx+'phase_v1v4']
-  store_data,rbspx+'phase_v2v3c',data=['line0','line90red','line180','line270red','line360',rbspx+'phase_v2v3']
-  store_data,rbspx+'phase_v2v4c',data=['line0','line90red','line180','line270red','line360',rbspx+'phase_v2v4']
-  store_data,rbspx+'phase_v3v4c',data=['line0','line90','line180red','line270','line360',rbspx+'phase_v3v4']
+  store_data,rbspx+'phase_v1v2c',data=['line0','line90','line180red','line270','line360',rbspx+'phase_v1v2_smoothed']
+  store_data,rbspx+'phase_v1v3c',data=['line0','line90','line180','line270red','line360',rbspx+'phase_v1v3_smoothed']
+  store_data,rbspx+'phase_v1v4c',data=['line0','line90red','line180','line270red','line360',rbspx+'phase_v1v4_smoothed']
+  store_data,rbspx+'phase_v2v3c',data=['line0','line90red','line180','line270','line360',rbspx+'phase_v2v3_smoothed']
+  store_data,rbspx+'phase_v2v4c',data=['line0','line90','line180','line270red','line360',rbspx+'phase_v2v4_smoothed']
+  store_data,rbspx+'phase_v3v4c',data=['line0','line90','line180red','line270','line360',rbspx+'phase_v3v4_smoothed']
   ylim,rbspx+['phase_v?v?c'],-10,380
   options,rbspx+'phase_v?v?','thick',2
 
@@ -256,7 +281,12 @@ spinperiod = median(dat.y)
 
   tplot_options,'title',''
   !p.charsize = 1.
-  tplot,[rbspx+'comb12_bp',rbspx+'comb34_bp',rbspx+'comb13_bp',$
+  tplot,[rbspx+'efw_efield_inertial_frame_mgse',$
+  rbspx+'efw_density',$
+  rbspx+'efw_flags_charging_bias_eclipse_charging',$
+  rbspx+'efw_flags_charging_bias_eclipse_bias',$
+  rbspx+'efw_flags_charging_bias_eclipse_eclipse',$
+  rbspx+'comb12_bp',rbspx+'comb34_bp',rbspx+'comb13_bp',$
   rbspx+'density_smoothed_detrend',$
   rbspx+'phase_v1v2c',rbspx+'phase_v3v4c',rbspx+'phase_v1v3c',rbspx+'phase_v2v3c',rbspx+'phase_v2v4c']
 
@@ -279,12 +309,12 @@ stop
   sr = 1/(v1.x[1]-v1.x[0])
   tplot_options,'title','wave effects test'
   stplot_analysis_spinplane_efield,'e12',spinrate=sr
-  options,'e120_flag','ytitle','e12 wake flag'
-  tplot,['rbspa_efw_vsvy_v1','e120','e120_mat','e120_amp','e120_flag']
+  options,'e120_flag','ytitle','e12!Cwake flag'
+;  tplot,['rbspa_efw_vsvy_v1','e120','e120_mat','e120_amp','e120_flag']
 
   stplot_analysis_spinplane_efield,'e34',spinrate=sr
-  options,'e340_flag','ytitle','e34 wake flag'
-  tplot,['rbspa_efw_vsvy_v3','e340','e340_mat','e340_amp','e340_flag']
+  options,'e340_flag','ytitle','e34!Cwake flag'
+;  tplot,['rbspa_efw_vsvy_v3','e340','e340_mat','e340_amp','e340_flag']
 
 
 
@@ -301,15 +331,15 @@ stop
   close,lun1,lun2
   free_lun,lun1,lun2
 
-stop
+
 
 ;--------------------------------------------------------------------
 ;  Another useful check is to compare the amplitude mismatch between the sine
 ;  waves of Eu and Ev, which detects more bad data in addition to wakes.
 ;--------------------------------------------------------------------
 
-;n_spinperiods_envelope = 10.
-n_spinperiods_envelope = 1.
+n_spinperiods_envelope = 5.
+;n_spinperiods_envelope = 1.
 
 rbsp_detrend,['e12','e34'],spinperiod*4.
 store_data,'euv_comb',data=['e12_detrend','e34_detrend']
@@ -390,9 +420,17 @@ store_data,'envelopemx_diff_comb',data=['e12_e34_envelopemx_diff','e12_e34_envel
 store_data,'envelopemx_div_comb',data=['e12_e34_envelopemx_div','e12_e34_envelopemn_div','divline']
 
 
-ylim,['e12_e34_envelopemx_div','e12_e34_envelopemn_div','envelopemx_div_comb'],0.8,100,1
+ylim,['e12_e34_envelopemx_div','e12_e34_envelopemn_div','envelopemx_div_comb'],0.8,10,1
 
-tplot,['envelope_diff_flag','envelope_div_flag','e120_flag','e340_flag','e12_envelopemxmn_test','e34_envelopemxmn_test','e12_e34_envelopemx_comp','e12_e34_envelopemn_comp','envelopemx_diff_comb','envelopemx_div_comb']
+tplot,[rbspx+'efw_efield_inertial_frame_mgse',$
+rbspx+'efw_density',$
+rbspx+'efw_flags_charging_bias_eclipse_charging',$
+rbspx+'efw_flags_charging_bias_eclipse_bias',$
+rbspx+'efw_flags_charging_bias_eclipse_eclipse',$
+'envelope_diff_flag','envelope_div_flag','e120_flag','e340_flag',$
+'e12_envelopemxmn_test','e34_envelopemxmn_test',$
+'e12_e34_envelopemx_comp','e12_e34_envelopemn_comp',$
+'envelopemx_diff_comb','envelopemx_div_comb']
 ;tplot,['envelope_diff_flag','e12_e34_envelopemx_comp','e12_e34_envelopemn_comp','e12_e34_envelopemx_diff','e12_e34_envelopemn_diff']
 ;tplot,['envelope_div_flag','e12_e34_envelopemx_comp','e12_e34_envelopemn_comp','e12_e34_envelopemx_div','e12_e34_envelopemn_div']
 ;tplot,['envelope_diff_flag','envelope_div_flag','e12_envelopemn_test','e34_envelopemn_test','e12_e34_envelopemn_comp','e12_e34_envelopemn_diff']
@@ -420,14 +458,26 @@ stop
     !p.charsize = 1.
     ;--------------------------------
     ;Smoothed and detrended versions
-    tplot,['envelope_diff_flag','e120_flag',$
+    tplot,[rbspx+'efw_efield_inertial_frame_mgse',$
+    rbspx+'efw_density',$
+    rbspx+'efw_flags_all',$
+    rbspx+'efw_flags_charging_bias_eclipse_charging',$
+    rbspx+'efw_flags_charging_bias_eclipse_bias',$
+    rbspx+'efw_flags_charging_bias_eclipse_eclipse',$
+    'envelope_div_flag','e120_flag',$
     rbspx+'comb12_bp',rbspx+'comb34_bp',rbspx+'comb13_bp',$
     rbspx+'density_smoothed_detrend',$
     rbspx+'phase_v1v2c',rbspx+'phase_v3v4c',rbspx+'phase_v1v3c',rbspx+'phase_v2v3c',rbspx+'phase_v2v4c']
     stop
     ;--------------------------------
     ;Non smoothed or detrended versions
-    tplot,['rbsp'+probe+'_efw_vsvy_v1',$
+    tplot,[rbspx+'efw_efield_inertial_frame_mgse',$
+    rbspx+'efw_density',$
+    rbspx+'efw_flags_all',$
+    rbspx+'efw_flags_charging_bias_eclipse_charging',$
+    rbspx+'efw_flags_charging_bias_eclipse_bias',$
+    rbspx+'efw_flags_charging_bias_eclipse_eclipse',$
+    'rbsp'+probe+'_efw_vsvy_v1',$
     'rbsp'+probe+'_efw_vsvy_v2',$
     'rbsp'+probe+'_efw_vsvy_v3',$
     'rbsp'+probe+'_efw_vsvy_v4',$
@@ -438,6 +488,14 @@ stop
 
   endif
 
+  ;Save tplot variables
+  store_data,tnames(['*hsk*','*rh*','*yh*','*yl*','*rl*','*BEB*','*DFB*',$
+  '*rbsp?_efw_vsvy_v?_smoothed','rbsp?_efw_vsvy_v?_detrend','rbspa_efw_vsvy','*smoothed_smoothed*',$
+  '*sum12*']),/delete
+
+  tplot_save,'*',filename='~/Desktop/RBSP'+probe+'_'+date_flags+'_probe_potentials_test'
+
+stop
   ;  pclose
 
 end
