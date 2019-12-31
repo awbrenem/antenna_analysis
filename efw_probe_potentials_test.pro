@@ -81,6 +81,7 @@ pro efw_probe_potentials_test,probe=probe,noplot=noplot,detrend_time=dettime,$
   options,rbx+'efw_flags_charging_bias_eclipse_charging','ytitle',rbx+'!Ccharging!Cflag'
   options,rbx+'efw_flags_charging_bias_eclipse_bias','ytitle',rbx+'!Cbias!Cflag'
   options,rbx+'efw_flags_charging_bias_eclipse_eclipse','ytitle',rbx+'!Ceclipse!Cflag'
+  options,rbx+'efw_flags_charging_bias_eclipse_extremecharging','ytitle',rbx+'!Cextremecharging!Cflag'
   ylim,[rbx+'efw_flags_all',rbx+'efw_flags_charging_bias_eclipse',$
   rbx+'efw_flags_charging_bias_eclipse_*'],0,2
   ylim,rbx+'efw_density',8,10000,1
@@ -459,7 +460,7 @@ tplot,[rbx+'efw_efield_inertial_frame_mgse',$
         rbx+'density12_actual',$
         rbx+'density34_actual',$
         rbx+'envelope_div_flag',$
-        rbx+'e120_flag',rbx+'e340_flag',$
+        rbx+'e12_rough0_flag',rbx+'e34_rough0_flag',$
         rbx+'efw_flags_all',$
         rbx+'efw_flags_charging_bias_eclipse_charging',$
         rbx+'efw_flags_charging_bias_eclipse_bias',$
