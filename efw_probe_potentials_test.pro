@@ -20,10 +20,13 @@
 
 ;Keywords:
 ;   cc_stepsize --> number of spinperiods to calculate the cross-correlations over.
-;              Defaults to 10.
+;              Defaults to 4.
 ;   detrend_time --> time (sec) to detrend over
 
 ;; 0.020 Hz  -> 50 sec period
+
+
+;*****Add Maria's flag: In order to make sure that the data loaded in is correct I created a flag which is thrown when the EFW values oscillate more than 10 V within a 10 sec range (just a rough estimate ).
 
 
 pro efw_probe_potentials_test,probe=probe,noplot=noplot,detrend_time=dettime,$
@@ -93,7 +96,7 @@ pro efw_probe_potentials_test,probe=probe,noplot=noplot,detrend_time=dettime,$
   ;CHECK SINGLE-ENDED MEASUREMENTS
   ;--------------------------------------------------
 
-  rbsp_load_efw_waveform,probe=probe,type='calibrated',datatype='vsvy'
+  rbsp_load_efw_waveform,probe=probe,type='calibrated',datatype='vsvy',coord='uvw'
   split_vec,rbx+'efw_vsvy',suffix='_'+['v1','v2','v3','v4','v5','v6']
 
 
@@ -182,13 +185,15 @@ pro efw_probe_potentials_test,probe=probe,noplot=noplot,detrend_time=dettime,$
   uu = nsteppts
   phase12 = fltarr(nsteps) & phase13 = fltarr(nsteps) & phase14 = fltarr(nsteps)
   phase23 = fltarr(nsteps) & phase24 = fltarr(nsteps) & phase34 = fltarr(nsteps)
-  phaseT = fltarr(nsteps)
+  phaseT = dblarr(nsteps)
 
   for qq=0L,nsteps-1 do begin
 
     v1t = v1.y[bb:uu] & v2t = v2.y[bb:uu] & v3t = v3.y[bb:uu] & v4t = v4.y[bb:uu]
 
     v1tx = v1.x[bb:uu]
+
+
 
     result12 = c_correlate(v1t, v2t, lag)
     result13 = c_correlate(v1t, v3t, lag)
@@ -227,7 +232,7 @@ pro efw_probe_potentials_test,probe=probe,noplot=noplot,detrend_time=dettime,$
     phase24[qq] = 360.*frac_spinperiod24/100.
     phase34[qq] = 360.*frac_spinperiod34/100.
 
-    phaseT[qq] = (v1tx[n_elements(v1tx)-1] + v1tx[0])/2.
+    phaseT[qq] = (v1tx[n_elements(v1tx)-1] + v1tx[0])/2d
 
     bb = bb + nsteppts
     uu = uu + nsteppts
@@ -240,6 +245,9 @@ pro efw_probe_potentials_test,probe=probe,noplot=noplot,detrend_time=dettime,$
   store_data,rbx+'phase_v2v3',data={x:phaseT,y:phase23}
   store_data,rbx+'phase_v2v4',data={x:phaseT,y:phase24}
   store_data,rbx+'phase_v3v4',data={x:phaseT,y:phase34}
+
+
+
 
   ;Smooth out phase values.
   rbsp_detrend,rbx+'phase_v?v?',10.8*ccstep_detrend_spinperiods
