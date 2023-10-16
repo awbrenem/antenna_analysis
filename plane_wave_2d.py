@@ -24,24 +24,26 @@ number of timesteps determined to allow wave to propagate across grid.
 def plane_wave_2d(gridspan=100, #size of grid in meters
                   f0=10, f1=20, #range of freqs (Hz)
                   nfreqs=2,    #number of freqs
-                  Vph=1000,     #phase velocity in m/s
+                  Vph=1000,     #phase velocity in m/s (NOTE: the lower Vph the more time steps will be needed to allow for wave to propagate across grid)
                   angle=45,     #angle relative to x-axis (deg)
                   p0=1,p1=0.1,   #power at f0 and f1
-                  snapshot=0):  #Single time instance only (t=0)
+                  snapshot=0,  #Single time instance only (t=0)
+                  animation=0): #watch animation of the wave?
 
 
     import numpy as np 
-    import sys 
-    sys.path.append('/Users/abrenema/Desktop/code/Aaron/github/mission_routines/rockets/Endurance/')
-    sys.path.append('/Users/abrenema/Desktop/code/Aaron/github/signal_analysis/')
+    #import sys 
+    #sys.path.append('/Users/abrenema/Desktop/code/Aaron/github/mission_routines/rockets/Endurance/')
+    #sys.path.append('/Users/abrenema/Desktop/code/Aaron/github/signal_analysis/')
     import matplotlib.pyplot as plt
+    from perlin_numpy import generate_perlin_noise_3d
 
 
 
     #-------------------------------
     #Define timestep to, at minimum, resolve the Nyquist freq.
     #In practice it needs to be quite a bit better than this. 
-    timeEnhance = 8
+    timeEnhance = 16
     fnyq = 2*f1
     dt = 1/fnyq / timeEnhance
 
@@ -94,7 +96,7 @@ def plane_wave_2d(gridspan=100, #size of grid in meters
 
 
     #--------------------------------------------------
-    #Final wave values in array of size [NxNxt]. To avoid nested for loops, broadcast all grid and time arrays to this size 
+    #Final wave values in array of size [N x N x t]. To avoid nested for loops, broadcast all grid and time arrays to this size 
 
     
 
@@ -112,12 +114,57 @@ def plane_wave_2d(gridspan=100, #size of grid in meters
 
 
 
+
+
+
+    #Calculate the propagating wave
     V = np.zeros((ngridpts, ngridpts, ntsteps))
     for w in range(nfreqs):
-        V = V + Vo[w]*np.cos(wvals[w]*tvals2 - (kx[w]*xvals2 + ky[w]*yvals2))
+        V += Vo[w]*np.cos(wvals[w]*tvals2 - (kx[w]*xvals2 + ky[w]*yvals2))
+
+
+    #add in noise
+    np.random.seed(0)
+    noise = generate_perlin_noise_3d((ngridpts, ngridpts, ntsteps), (int(ngridpts/4), int(ngridpts/4), int(ntsteps/4)), tileable=(False, False, False))
+    V += noise
 
 
 
-    return(V, xvals, yvals, tvals, fvals, lmin, lmax)
+
+    if animation:
+        #Watch the animated wave move! 
+        import matplotlib.animation as animation
+
+
+        fig = plt.figure()
+        images = [
+            [plt.imshow(layer, cmap='turbo', interpolation='lanczos', animated=True)]
+            for layer in V
+        ]
+        animation_3d = animation.ArtistAnimation(fig, images, interval=10, blit=True)
+        plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    vals = {'lambda_min':lmin, 'lambda_max':lmax,
+            'freqs':fvals,
+            'kx':kx,
+            'ky':ky,
+            'angle':angle,
+            'vphase':Vph}
+
+    return(V, xvals, yvals, tvals, vals)
 
 
